@@ -14,6 +14,8 @@
 
 #include <libxml/HTMLparser.h>
 
+//dadadasdadasd
+
 // this has to be recursive
 void extractFromNode(TidyDoc tdoc, TidyNode tnode) {
     printf("called extract for node=%s!\n", tidyNodeGetName(tnode) ? tidyNodeGetName(tnode) : " [value] ");
