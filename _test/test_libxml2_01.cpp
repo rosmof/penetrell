@@ -4,9 +4,10 @@
  *      Author: AlexandruG
 
  ************************************************/
+#include <unistd.h>
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include <tidy.h>
 #include <tidybuffio.h>
@@ -14,15 +15,34 @@
 
 #include <libxml/HTMLparser.h>
 
-//dadadasdadasd
-
 // this has to be recursive
 void extractFromNode(TidyDoc tdoc, TidyNode tnode) {
-    printf("called extract for node=%s!\n", tidyNodeGetName(tnode) ? tidyNodeGetName(tnode) : " [value] ");
-    TidyNode child;
-    for (child = tidyGetChild(tnode); child; child = tidyGetNext(child)) {
-        ctmbstr name = tidyNodeGetName(child);
-        extractFromNode(tdoc, child);
+
+    int index = 0;
+
+    TidyNode cursor;
+    for (cursor = tidyGetChild(tnode); cursor; cursor = tidyGetNext(cursor)) {
+
+        TidyNode nd;
+
+        // the values are usually the next node inside the td
+        // but sometimes there is an a tag so we have to skip it
+        // with the while below
+        for (nd = tidyGetChild(cursor); nd; nd = tidyGetNext(nd)) {
+            TidyNode valuenode = tidyGetChild(nd);
+            ctmbstr value;
+
+            // skip other tags
+            while ((value = tidyNodeGetName(valuenode)) != nullptr) {
+                valuenode = tidyGetChild(valuenode);
+            }
+
+            TidyBuffer buffer;
+            tidyBufInit(&buffer);
+            tidyNodeGetValue(tdoc, valuenode, &buffer);
+
+            printf("...the value is: %s\n", buffer.bp);
+        }
     }
 }
 
@@ -36,12 +56,13 @@ void dumpNode(TidyDoc tdoc, TidyNode tnode, int indent) {
                 TidyAttr attr = tidyAttrFirst(child);
                 if (strcmp(tidyAttrName(attr), "id") == 0) {
                     const char* aval = tidyAttrValue(attr);
-                    if (strcmp(aval, "ctl00_PlaceHolderMain_g_17385422_131b_4c6c_89b4_9d3c87bc221a_ctl01") == 0) {
+                    if (strcmp(
+                            aval,
+                            "ctl00_PlaceHolderMain_g_17385422_131b_4c6c_89b4_"
+                            "9d3c87bc221a_ctl01") == 0) {
 
-                        // call here to extract the subnodes and the values
-                        // that is the table
-                        printf("EVIRKA!\n");
-                        extractFromNode(tdoc, tidyGetParent(child));
+                        // use get child - see the html structure
+                        extractFromNode(tdoc, tidyGetNext(child));
                         printf("will exit\n");
                         break;
                     }
@@ -53,9 +74,11 @@ void dumpNode(TidyDoc tdoc, TidyNode tnode, int indent) {
         //            TidyAttr attr;
         //            printf("%*.*s%s", indent, indent, "<", name);
         //
-        //            for (attr = tidyAttrFirst(child); attr; attr = tidyAttrNext(attr)) {
+        //            for (attr = tidyAttrFirst(child); attr; attr =
+        //            tidyAttrNext(attr)) {
         //                printf("%s", tidyAttrName(attr));
-        //                tidyAttrValue(attr) ? printf("=\"%s\" ", tidyAttrValue(attr)) : printf(" ffffffffffff ");
+        //                tidyAttrValue(attr) ? printf("=\"%s\" ",
+        //                tidyAttrValue(attr)) : printf(" ffffffffffff ");
         //            }
         //            printf(">\n");
         //        }
@@ -63,8 +86,8 @@ void dumpNode(TidyDoc tdoc, TidyNode tnode, int indent) {
         //            TidyBuffer tbuf;
         //            tidyBufInit(&tbuf);
         //            tidyNodeGetText(tdoc, child, &tbuf);
-        //            printf("xxxxxxxxx%*.*s\n", indent, indent + 4, tbuf.bp ? (char*)tbuf.bp : "");
-        //            tidyBufFree(&tbuf);
+        //            printf("xxxxxxxxx%*.*s\n", indent, indent + 4, tbuf.bp ?
+        //            (char*)tbuf.bp : ""); tidyBufFree(&tbuf);
         //        }
 
         dumpNode(tdoc, child, indent + 4);
@@ -72,14 +95,22 @@ void dumpNode(TidyDoc tdoc, TidyNode tnode, int indent) {
 }
 
 int main() {
+
+    char root[256];
+    bzero(root, 256);
+    getcwd(root, 256);
+
+    sprintf(root + strlen(root), "%s", "/html_documents/get_page_html.dat");
+
     std::ifstream src;
-    src.open("/Users/AlexandruG/eclipse-ws/penetrel/html_documents/get_page_html.dat",
-            std::ios_base::binary | std::ios_base::in);
+    src.open(root, std::ios_base::binary | std::ios_base::in);
 
     if (!src) {
         std::cout << "failed to open source file" << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    printf("opened file at: %s\n", root);
 
     src.seekg(0, std::ios_base::end);
     unsigned long len = src.tellg();
