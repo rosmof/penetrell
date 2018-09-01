@@ -13,12 +13,10 @@
 #include <curl/easy.h>
 
 struct response_page_details {
-    char* rsp_page;         // the rarw content of the html page
-    int rsp_status_hdr;     // the status from the header
-    size_t rsp_size_hdr;    // the size from the http header
-    size_t rsp_size_recv;   // the number of bytes received
-    table_row* rows;        // the data rows on the page
-    size_t rowslen;         // number of rows on the page
+    char* rsp_page;       // the rarw content of the html page
+    int rsp_status_hdr;   // the status from the header
+    size_t rsp_size_hdr;  // the size from the http header
+    size_t rsp_size_recv; // the number of bytes received
 };
 
 /**
@@ -33,18 +31,15 @@ size_t content_callback(void* block, size_t size, size_t nmemb, void* userp);
  * headers from the server are sent back to CURL; for each header, this function
  * is called;
  *  */
-size_t header_callback(char* header, size_t size, size_t nitems,
-                       void* userdata);
+size_t header_callback(char* header, size_t size, size_t nitems, void* userdata);
 
-int do_get_request(const char* address, CURL* curl,
-                   response_page_details* page);
+int do_get_request(const char* address, CURL* curl, response_page_details* page);
 
 /**
  * This function creates the post request in order to get another page from the
  * server
  * */
-const char* do_post_request(CURL* curl, const char* address,
-                            post_key_list* pklist, size_t gotn);
+const char* do_post_request(CURL* curl, const char* address, post_key_list* pklist, size_t gotn);
 
 /**
  * This function sets all the post fields for a POST request. For EVENTARGUMENT
@@ -57,8 +52,15 @@ const char* do_post_request(CURL* curl, const char* address,
  * @return an URL-ENCODED null-terminated string that represents the post form
  * value
  *
- *  */
-const char* set_post_fields(CURL* curl, struct post_key_list* pklist,
-                            size_t gotn);
+ **/
+const char* set_post_fields(CURL* curl, struct post_key_list* pklist, size_t gotn);
+
+/**
+ * Each POST request must be submitted with a different value for the EVENTARGUMENT form field value;
+ *
+ * @param the value to increase EVENTARGUMENT by;
+ *
+ **/
+void update_eventargument(int byval, struct post_key_list* pklist);
 
 #endif

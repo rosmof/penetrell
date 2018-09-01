@@ -7,17 +7,19 @@
 #include <iostream>
 #include <curl/curl.h>
 #include <curl/easy.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
 
+#include <tidybuffio.h>
+#include <tidyplatform.h>
+
 #include "parse.h"
 #include "form_data.h"
+
+static bool isfound = false;     // used to mark that the starting tag was found
+static TidyNode found = nullptr; // this is the found tag
 
 /**
  * Adds pointers to a list of post_keys and updates the size attribute
@@ -65,6 +67,20 @@ void free_pklist(post_key_list* pklist) {
     }
 }
 
+/**
+ * All the keys that must be parsed from the HTTP GET response are hard coded in the
+ * formfields array; This method iterates through all the values in the array and parses
+ * the values from the HTML.
+ *
+ * The keys will be allocated in the pklist that is submitted as argument in the function
+ * signature.
+ *
+ * @param pklist, a pointer to the list of keys that will be allocated by the function;
+ *
+ * @param html, a pointer to the raw content of the HTML page
+ *
+ * @return if there are more pages returns true; otherwise false
+ **/
 bool get_form_fields(post_key_list* pklist, const char* html) {
     const char** pcurr = &formfields[0];
 
@@ -131,6 +147,155 @@ bool get_form_fields(post_key_list* pklist, const char* html) {
     }
 
     return true;
+}
+
+int get_table_data(table_row_list* prlist, const char* html) {
+
+    TidyDoc tdoc;
+    TidyBuffer tbuff = {0};
+    TidyBuffer terr = {0};
+
+    tdoc = tidyCreate();
+    tidyOptSetBool(tdoc, TidyForceOutput, yes);
+    tidyOptSetInt(tdoc, TidyWrapLen, 4096);
+    tidySetErrorBuffer(tdoc, &terr);
+    tidyBufInit(&tbuff);
+
+    tidyBufAppend(&tbuff, (void*)html, strlen(html));
+
+    int err = tidyParseString(tdoc, html);
+    if (err >= 0) {
+        err = tidyCleanAndRepair(tdoc);
+        if (err >= 0) {
+            err = tidyRunDiagnostics(tdoc);
+            parse_html_table(tdoc, prlist, html);
+        }
+    }
+
+    return 1;
+}
+
+void parse_html_table(TidyDoc tdoc, table_row_list* prlist, const char* html) {
+    find_starting_node_post(tdoc, tidyGetRoot(tdoc));
+
+    if (found == nullptr) {
+        printf("Starting tag not found!\n");
+        exit(-1);
+    }
+
+    if (!(extract_html_table(tdoc, tidyGetNext(found), prlist))) {
+        printf("failed to extract the table from the page!\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void find_starting_node_post(TidyDoc tdoc, TidyNode current) {
+    found = nullptr;
+    isfound = false;
+    TidyNode cursor;
+
+    for (cursor = tidyGetChild(current); cursor; cursor = tidyGetNext(cursor)) {
+        ctmbstr name = tidyNodeGetName(cursor);
+
+        if (name) {
+            if (strcmp(name, PENETREL_POST_START_TAG) == 0) {
+                TidyAttr attr = tidyAttrFirst(cursor);
+                if (strcmp(tidyAttrName(attr), PENETREL_POST_START_ID) == 0) {
+                    const char* aval = tidyAttrValue(attr);
+                    if (strcmp(aval, PENETREL_POST_START_VALUE) == 0) {
+                        found = cursor;
+                        isfound = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!isfound) {
+            find_starting_node_post(tdoc, cursor);
+        }
+    }
+}
+
+typedef enum { row_judet = 0, row_strada = 1, row_cod = 2, row_institutie = 3 } row_fields;
+
+bool extract_html_table(TidyDoc tdoc, TidyNode ref, table_row_list* prlist) {
+
+    TidyNode cursor;
+    table_row* tr;
+
+    for (cursor = tidyGetChild(ref); cursor; cursor = tidyGetNext(cursor)) {
+
+        // not interested in th tags
+        if (is_th_tag(cursor)) {
+            continue;
+        }
+
+        TidyNode nd;
+        tr = (table_row*)calloc(1, sizeof(table_row));
+
+        int index = 0;
+
+        // the values are usually the next node inside the td
+        // but sometimes there is an a tag so we have to skip it
+        // with the while below
+        for (nd = tidyGetChild(cursor); nd; nd = tidyGetNext(nd)) {
+            TidyNode valuenode = tidyGetChild(nd);
+            ctmbstr value;
+
+            // skip other tags
+            while ((value = tidyNodeGetName(valuenode)) != nullptr) {
+                valuenode = tidyGetChild(valuenode);
+            }
+
+            TidyBuffer buffer;
+            tidyBufInit(&buffer);
+            tidyNodeGetValue(tdoc, valuenode, &buffer);
+
+            switch (index) {
+                case row_judet:
+                    memcpy(tr->judet, buffer.bp, strlen((char*)buffer.bp));
+                    break;
+                case row_strada:
+                    memcpy(tr->strada, buffer.bp, strlen((char*)buffer.bp));
+                    break;
+                case row_cod:
+                    memcpy(tr->cod, buffer.bp, strlen((char*)buffer.bp));
+                    break;
+                case row_institutie:
+                    memcpy(tr->institutie, buffer.bp, strlen((char*)buffer.bp));
+                    break;
+                default:
+                    printf("bad index at values\n");
+                    break;
+            }
+
+            if (prlist->n == 0) {
+                prlist->prow = (table_row**)calloc(1, sizeof(table_row*));
+            } else {
+                prlist->prow = (table_row**)realloc(prlist->prow, (prlist->n + 1) * sizeof(table_row*));
+            }
+
+            prlist->prow[prlist->n] = tr;
+            prlist->n++;
+
+            index++;
+        }
+    }
+
+    return true;
+}
+
+bool is_th_tag(TidyNode node) {
+
+    bool result = false;
+
+    ctmbstr name = tidyNodeGetName(node);
+    if (strcmp(name, "th") == 0) {
+        result = true;
+    }
+
+    return result;
 }
 
 /**

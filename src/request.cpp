@@ -94,8 +94,6 @@ int do_get_request(const char* address, CURL* c, response_page_details* page) {
             return -1;
         }
 
-        printf("status = %d and length = %d\n", hb.http_status, hb.response_len);
-
         page->rsp_page = mb.buffer;
         page->rsp_size_recv = mb.size;
         page->rsp_size_hdr = hb.response_len;
@@ -147,6 +145,7 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
 
     if ((code = curl_easy_perform(curl)) != CURLE_OK) {
         printf("failed to post the data -> %s , %s \n", curl_easy_strerror(code), err_buffer);
+        return nullptr;
     }
 
     curl_slist_free_all(list);
@@ -154,6 +153,12 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
     return response_page.buffer;
 }
 
+/**
+ * Creates a string formed by key=value linked with the & char. Keys and Values are
+ * converted to URL-Encoded with curl_easy_escape;
+ *
+ * @return the complete string with the keys and values
+ *  */
 const char* set_post_fields(CURL* curl, struct post_key_list* pklist, size_t gotn) {
 
     std::string post_data;

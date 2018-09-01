@@ -56,10 +56,9 @@ void dumpNode(TidyDoc tdoc, TidyNode tnode, int indent) {
                 TidyAttr attr = tidyAttrFirst(child);
                 if (strcmp(tidyAttrName(attr), "id") == 0) {
                     const char* aval = tidyAttrValue(attr);
-                    if (strcmp(
-                            aval,
-                            "ctl00_PlaceHolderMain_g_17385422_131b_4c6c_89b4_"
-                            "9d3c87bc221a_ctl01") == 0) {
+                    if (strcmp(aval, "ctl00_PlaceHolderMain_g_17385422_131b_4c6c_89b4_"
+                                     "9d3c87bc221a_ctl01")
+                            == 0) {
 
                         // use get child - see the html structure
                         extractFromNode(tdoc, tidyGetNext(child));
@@ -70,37 +69,19 @@ void dumpNode(TidyDoc tdoc, TidyNode tnode, int indent) {
             }
         }
 
-        //        if (name) {
-        //            TidyAttr attr;
-        //            printf("%*.*s%s", indent, indent, "<", name);
-        //
-        //            for (attr = tidyAttrFirst(child); attr; attr =
-        //            tidyAttrNext(attr)) {
-        //                printf("%s", tidyAttrName(attr));
-        //                tidyAttrValue(attr) ? printf("=\"%s\" ",
-        //                tidyAttrValue(attr)) : printf(" ffffffffffff ");
-        //            }
-        //            printf(">\n");
-        //        }
-        //                } else {
-        //            TidyBuffer tbuf;
-        //            tidyBufInit(&tbuf);
-        //            tidyNodeGetText(tdoc, child, &tbuf);
-        //            printf("xxxxxxxxx%*.*s\n", indent, indent + 4, tbuf.bp ?
-        //            (char*)tbuf.bp : ""); tidyBufFree(&tbuf);
-        //        }
-
         dumpNode(tdoc, child, indent + 4);
     }
 }
 
-int main() {
+int main__sd() {
 
     char root[256];
     bzero(root, 256);
     getcwd(root, 256);
 
     sprintf(root + strlen(root), "%s", "/html_documents/get_page_html.dat");
+
+    printf("file=%s\n", root);
 
     std::ifstream src;
     src.open(root, std::ios_base::binary | std::ios_base::in);

@@ -42,6 +42,10 @@ static const char* script_manager_value =
 
 static const char* PENETREL_HEADER_STATUS = "HTTP/1.1\0";
 static const char* PENETREL_HEADER_LENGTH = "Content-Length:\0";
+static const char* PENETREL_POST_START_TAG = "input";
+static const char* PENETREL_POST_START_VALUE = "ctl00_PlaceHolderMain_g_17385422_131b_4c6c_89b4_9d3c87bc221a_ctl01";
+static const char* PENETREL_POST_START_ID = "id";
+
 
 #define PENETREL_CURL_ERROR -1
 #define PENETREL_HTTP_STATUS_OK 200
