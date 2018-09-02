@@ -27,6 +27,7 @@
 									<listOptionValue builtIn="false" value="/usr/local/lib"/>
 								</option>
 								<option id="macosx.cpp.link.option.libs.873992450" name="Libraries (-l)" superClass="macosx.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
+									<listOptionValue builtIn="false" value="sqlite3"/>
 									<listOptionValue builtIn="false" value="curl"/>
 									<listOptionValue builtIn="false" value="tidy.5"/>
 									<listOptionValue builtIn="false" value="xml2"/>
@@ -46,6 +47,7 @@
 								<option id="gnu.cpp.compiler.macosx.exe.debug.option.debugging.level.509660244" name="Debug Level" superClass="gnu.cpp.compiler.macosx.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1413068461" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/include/libxml2/"/>
+									<listOptionValue builtIn="false" value="/usr/include/"/>
 									<listOptionValue builtIn="false" value="/usr/local/include/curl/"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.1173689784" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++11" valueType="enumerated"/>

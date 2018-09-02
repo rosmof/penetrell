@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -lcurl -ltidy.5 -lxml2 -lssl
+LIBS := -lsqlite3 -lcurl -ltidy.5 -lxml2 -lssl
 

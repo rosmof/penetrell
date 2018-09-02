@@ -74,6 +74,8 @@ int do_get_request(const char* address, CURL* c, response_page_details* page) {
     hb.http_status = 0;
     hb.response_len = 0;
 
+    curl_easy_reset(c);
+
     if (c) {
         CURLcode res;
         curl_easy_setopt(c, CURLOPT_URL, address);
@@ -87,6 +89,7 @@ int do_get_request(const char* address, CURL* c, response_page_details* page) {
         curl_easy_setopt(c, CURLOPT_HEADERFUNCTION, header_callback);
         curl_easy_setopt(c, CURLOPT_HEADERDATA, &hb);
 
+        printf("before perform\n");
         res = curl_easy_perform(c);
 
         if (res != CURLE_OK) {
@@ -121,6 +124,8 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
 
     CURLcode code;
 
+    curl_easy_reset(curl);
+
     curl_easy_setopt(curl, CURLOPT_URL, address);
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, err_buffer);
     curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
@@ -130,6 +135,7 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
 
     const char* post_data = set_post_fields(curl, pklist, gotn);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
+
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
     curl_easy_setopt(curl, CURLOPT_REFERER, address);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, content_callback);
@@ -149,6 +155,7 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
     }
 
     curl_slist_free_all(list);
+    delete post_data;
 
     return response_page.buffer;
 }
@@ -157,14 +164,14 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
  * Creates a string formed by key=value linked with the & char. Keys and Values are
  * converted to URL-Encoded with curl_easy_escape;
  *
- * @return the complete string with the keys and values
+ * @return allocated char with the content of the post data; the result must be freed
+ * after being used;
  *  */
 const char* set_post_fields(CURL* curl, struct post_key_list* pklist, size_t gotn) {
 
     std::string post_data;
-    if (!pklist) { // if the list is already formed
-                   // i have to increment  __EVENTARGUMENT
-    }
+
+    update_eventargument(pklist, gotn);
 
     for (int i = 0; i < pklist->items; i++) {
         struct post_key* pk = pklist->keys[i];
@@ -174,5 +181,8 @@ const char* set_post_fields(CURL* curl, struct post_key_list* pklist, size_t got
                 .append("&");
     }
 
-    return post_data.c_str();
+    char* result = (char*)calloc(post_data.size(), sizeof(unsigned char));
+    strcpy(result, post_data.c_str());
+
+    return result;
 }

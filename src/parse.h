@@ -67,6 +67,8 @@ int add_post_key(post_key_list* pklist, post_key* pk, size_t size);
 
 void free_pklist(post_key_list* pklist);
 
+void update_eventargument(post_key_list* pklist, size_t gotn);
+
 /**
  * Parses all the keys that are inside the GET HTML response.
  *
@@ -82,8 +84,10 @@ bool get_form_fields(post_key_list* pklist, const char* html);
  *
  * @return 1 if there are more pages; 0 if this is the last page; -1 on error.
  *
- *  */
+ **/
 int get_table_data(table_row_list* prlist, const char* html);
+
+void free_table_data(table_row_list* trlist);
 
 /***************************************************************************************************************
  **
@@ -120,9 +124,16 @@ void get_value(const char* html, const char* start_criteria, const char* separat
  *  */
 post_key* parse_next_href(const char* html, void* pnext, char* separator, size_t* len);
 
-void parse_html_table(TidyDoc tdoc, table_row_list* prlist, const char* html);
+int parse_html_table(TidyDoc tdoc, table_row_list* prlist, const char* html);
 
 void find_starting_node_post(TidyDoc tdoc, TidyNode node);
+
+/**
+ * Function used to check if there are more pages
+ *
+ * @return true if there are, false otherwise
+ *  */
+bool has_next(const char* html);
 
 /**********************************************************************************************************************
  ** Actually iterates through the table tag and extracts the table values to the

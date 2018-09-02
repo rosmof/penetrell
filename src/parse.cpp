@@ -18,8 +18,8 @@
 #include "parse.h"
 #include "form_data.h"
 
-static bool isfound = false;     // used to mark that the starting tag was found
-static TidyNode found = nullptr; // this is the found tag
+static volatile bool isfound = false; // used to mark that the starting tag was found
+static TidyNode found = nullptr;      // this is the found tag
 
 /**
  * Adds pointers to a list of post_keys and updates the size attribute
@@ -57,13 +57,35 @@ void free_pklist(post_key_list* pklist) {
     for (int i = 0; i < pklist->items; i++) {
         if (strncmp(pklist->keys[i]->key, "__EVENTTARGET", 13) == 0) {
             // there are 2 pointers allocated
-            free(pklist->keys);
+            delete[] pklist->keys;
             i++;
             continue;
         } else {
-            free(pklist->keys[i]);
+            delete pklist->keys[i];
         }
         pklist->items--;
+    }
+}
+
+/**
+ * I only have to updata the EVENTARGUMENT for values above 31; The first complete
+ * value is parsed from the GET response, by method
+ *
+ * bool get_form_fields(post_key_list* pklist, const char* html) in parse.h
+ *
+ *  */
+void update_eventargument(post_key_list* pklist, size_t gotn) {
+    if (gotn > 30) {
+        for (int i = 0; i < pklist->items; i++) {
+            if (strncmp(pklist->keys[i]->key, "__EVENTARGUMENT", 13) == 0) {
+                char replace[32];
+                bzero(replace, 32);
+                sprintf(replace, nextrow_fmt, gotn);
+                bzero(pklist->keys[i]->value, 5012);
+                strcpy(pklist->keys[i]->value, replace);
+                printf("new value: %s\n", pklist->keys[i]->value);
+            }
+        }
     }
 }
 
@@ -149,6 +171,14 @@ bool get_form_fields(post_key_list* pklist, const char* html) {
     return true;
 }
 
+/**
+ * Parses the html passed as argument and extracts the table with values
+ * that is further copied to prlist; prlist is allocated on the heap, so
+ * you must free the memory for each pointer.
+ *
+ * Returns 0 if something failed or 1 if everything is ok;
+ *
+ *  */
 int get_table_data(table_row_list* prlist, const char* html) {
 
     TidyDoc tdoc;
@@ -168,25 +198,32 @@ int get_table_data(table_row_list* prlist, const char* html) {
         err = tidyCleanAndRepair(tdoc);
         if (err >= 0) {
             err = tidyRunDiagnostics(tdoc);
-            parse_html_table(tdoc, prlist, html);
         }
     }
 
-    return 1;
+    return parse_html_table(tdoc, prlist, html);
 }
 
-void parse_html_table(TidyDoc tdoc, table_row_list* prlist, const char* html) {
+int parse_html_table(TidyDoc tdoc, table_row_list* prlist, const char* html) {
     find_starting_node_post(tdoc, tidyGetRoot(tdoc));
 
+    // i couldn't make find_starting_node_post to return
+    // a value or set a parameter (have no ideea why)
+    // so the last resort was a static TidyNode found
+    // that is used to check if find returns a value
+    // or not
     if (found == nullptr) {
         printf("Starting tag not found!\n");
-        exit(-1);
+        printf("html: \n%s\n", html);
+        return 0;
     }
 
     if (!(extract_html_table(tdoc, tidyGetNext(found), prlist))) {
         printf("failed to extract the table from the page!\n");
-        exit(EXIT_FAILURE);
+        return 0;
     }
+
+    return 1;
 }
 
 void find_starting_node_post(TidyDoc tdoc, TidyNode current) {
@@ -225,27 +262,35 @@ bool extract_html_table(TidyDoc tdoc, TidyNode ref, table_row_list* prlist) {
     table_row* tr;
 
     for (cursor = tidyGetChild(ref); cursor; cursor = tidyGetNext(cursor)) {
-
-        // not interested in th tags
-        if (is_th_tag(cursor)) {
-            continue;
-        }
-
+        bool isth = false;
         TidyNode nd;
         tr = (table_row*)calloc(1, sizeof(table_row));
 
+        // the table_row_list index that is incremented with each entry
         int index = 0;
 
         // the values are usually the next node inside the td
         // but sometimes there is an a tag so we have to skip it
         // with the while below
         for (nd = tidyGetChild(cursor); nd; nd = tidyGetNext(nd)) {
+            isth = is_th_tag(nd);
+            if (isth) {
+                continue;
+            }
+
             TidyNode valuenode = tidyGetChild(nd);
             ctmbstr value;
 
-            // skip other tags
-            while ((value = tidyNodeGetName(valuenode)) != nullptr) {
+            int tdcounter = 0;
+
+            // skip other tags and use a counter to stop;
+            while (((value = tidyNodeGetName(valuenode)) != nullptr) && tdcounter++ < 5) {
                 valuenode = tidyGetChild(valuenode);
+            }
+
+            if (tdcounter == 4) { // this means that the value tag was not found
+                printf("skipped too many tags; probably bad format\n");
+                return 0;
             }
 
             TidyBuffer buffer;
@@ -267,7 +312,7 @@ bool extract_html_table(TidyDoc tdoc, TidyNode ref, table_row_list* prlist) {
                     break;
                 default:
                     printf("bad index at values\n");
-                    break;
+                    return 0;
             }
 
             if (prlist->n == 0) {
@@ -276,10 +321,16 @@ bool extract_html_table(TidyDoc tdoc, TidyNode ref, table_row_list* prlist) {
                 prlist->prow = (table_row**)realloc(prlist->prow, (prlist->n + 1) * sizeof(table_row*));
             }
 
+            if (!(prlist->prow)) {
+                printf("Could not assign new memory to table_row while parsing the html\n");
+                return 0;
+            }
             prlist->prow[prlist->n] = tr;
-            prlist->n++;
-
             index++;
+        }
+
+        if (!isth) {
+            prlist->n++;
         }
     }
 
@@ -296,6 +347,24 @@ bool is_th_tag(TidyNode node) {
     }
 
     return result;
+}
+
+bool has_next(const char* html) {
+    if (strstr(html, "next") != nullptr) {
+        return true;
+    }
+
+    return false;
+}
+
+void free_table_data(table_row_list* trlist) {
+    int n = trlist->n;
+    for (int i = 0; i < n; i++) {
+        free(trlist->prow[i]);
+        trlist->n--;
+    }
+
+    delete[] trlist->prow;
 }
 
 /**

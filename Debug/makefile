@@ -45,19 +45,19 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: penetrel
+all: penetrell
 
 # Tool invocations
-penetrel: $(OBJS) $(USER_OBJS)
+penetrell: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: MacOS X C++ Linker'
-	g++ -L/usr/local/lib -o "penetrel" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L/usr/local/lib -o "penetrell" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(CC_DEPS)$(C++_DEPS)$(EXECUTABLES)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(INO_DEPS)$(PDE_DEPS)$(CPP_DEPS)$(C_DEPS) penetrel
+	-$(RM) $(CC_DEPS)$(C++_DEPS)$(EXECUTABLES)$(OBJS)$(C_UPPER_DEPS)$(CXX_DEPS)$(INO_DEPS)$(PDE_DEPS)$(CPP_DEPS)$(C_DEPS) penetrell
 	-@echo ' '
 
 .PHONY: all clean dependents

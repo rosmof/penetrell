@@ -55,12 +55,4 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
  **/
 const char* set_post_fields(CURL* curl, struct post_key_list* pklist, size_t gotn);
 
-/**
- * Each POST request must be submitted with a different value for the EVENTARGUMENT form field value;
- *
- * @param the value to increase EVENTARGUMENT by;
- *
- **/
-void update_eventargument(int byval, struct post_key_list* pklist);
-
 #endif

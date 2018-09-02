@@ -28,6 +28,7 @@ static const char* hardcoded_fields[] = {"InputKeywords",
         "__spText2", "_wpcmWpid", "wpcmVal", nullptr};
 
 static const char* formfield_start_fmt = "id=\x22%s\x22";
+static const char* nextrow_fmt = "dvt_firstrow={%d}\0";
 
 static const char* address_fmt = "http://portal.just.ro/%d/SitePages/Circumscriptii.aspx?id_inst=%d";
 
@@ -45,7 +46,7 @@ static const char* PENETREL_HEADER_LENGTH = "Content-Length:\0";
 static const char* PENETREL_POST_START_TAG = "input";
 static const char* PENETREL_POST_START_VALUE = "ctl00_PlaceHolderMain_g_17385422_131b_4c6c_89b4_9d3c87bc221a_ctl01";
 static const char* PENETREL_POST_START_ID = "id";
-
+static const char* PENETREL_HAS_NEXT_CRITERIA = "<img src=\"/_layouts/images/next.gif\" border=\"0\" alt=\"Next\">";
 
 #define PENETREL_CURL_ERROR -1
 #define PENETREL_HTTP_STATUS_OK 200
