@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
             // the server returned other status than 200
             // must be interpreted and take actions as necessary
             printf("Header from GET is not OK for %s [%d]\n", address, page.rsp_status_hdr);
-            exit(EXIT_FAILURE);
+            continue;
         }
 
         // get the table rows from the returned page
