@@ -22,10 +22,15 @@ typedef struct _input_arguments {
 void print_error() {
     printf("error: invalid input parameters\n");
     printf("usage: ./penetrell -s [index] -n [for], meaning:\n");
-    printf("   -- s [index], the index should be taken from portal.just.ro "
-           "(http://portal.just.ro/2/SitePages/acasa_default.aspx?id_inst=2)\n");
+    printf("   -- s [index], the index should be taken from portal.just.ro\n "
+           "           (http://portal.just.ro/2/SitePages/acasa_default.aspx?id_inst=2)\n");
+    printf("        [index] must be > 0\n");
+    printf("\n");
     printf("   -- n [for] , the number of increments to get from start\n");
+    printf("        [for] must be > 0 and less than 10 (so they won't come for you)\n");
+    printf("\n");
     printf("try again!");
+    printf("**********************************************************\n");
 }
 
 inargs* handle_input(int argc, char* argv[]) {
@@ -45,7 +50,6 @@ inargs* handle_input(int argc, char* argv[]) {
     }
 
     if (sval == 0 || nval == 0) {
-	printf("inide err\n");
         print_error();
         return nullptr;
     }

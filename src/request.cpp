@@ -89,7 +89,6 @@ int do_get_request(const char* address, CURL* c, response_page_details* page) {
         curl_easy_setopt(c, CURLOPT_HEADERFUNCTION, header_callback);
         curl_easy_setopt(c, CURLOPT_HEADERDATA, &hb);
 
-        printf("before perform\n");
         res = curl_easy_perform(c);
 
         if (res != CURLE_OK) {

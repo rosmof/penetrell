@@ -33,11 +33,9 @@ const char* penetrel_sql_checktable =
         "select count(type) as result from sqlite_master where type='table' and name='index'";
 
 static int sql_callback(void* type, int argc, char** argv, char** colname) {
-    printf("called!\n");
     sqlarg* a = (sqlarg*)type;
 
     if (strcmp(a->qtype, "table_exists") == 0) {
-        printf("correct parameter\n");
         if (argc == 1) {
             if (strcmp(colname[0], "result") == 0) {
                 a->res = atoi(argv[0]);
@@ -183,7 +181,6 @@ bool delete_foridx(int idx) {
     char cmd[delen + 1];
     bzero(cmd, delen + 1);
     sprintf(cmd, penetrel_sql_delete, idx);
-    printf("delete = %s\n", cmd);
 
     return sql_exec(cmd);
 }

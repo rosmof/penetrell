@@ -12,21 +12,21 @@
 #include "persistence.h"
 #include "arguments.h"
 
-void print_table_row(table_row_list* list) {
-    for (int i = 0; i < list->n; i++) {
-        table_row* row = list->prow[i];
-        printf("judet=%32s, localitate=%64s, cod=%8s, institutie=%s\n", row->judet, row->strada, row->cod,
-                row->institutie);
-    }
-}
-
-void print_pklist(post_key_list* list) {
-    for (int i = 0; i < list->items; i++) {
-        struct post_key* pk = list->keys[i];
-        printf(" -- key=%s value=%s\n", pk->key, pk->value);
-    }
-}
-
+/***********************************************************************************
+ ** The purpose of this is to collect the tables from portal.just.ro that otherwise
+ ** are available only by submitting POST requests for each 30 result set;
+ **
+ ** The main URL is hard coded inside the source code but indexes may be passed to
+ ** GET different pages. The subsequent POST are done automatically if there are more
+ ** rows.
+ **
+ ** To run the program one must use 2 parameters:
+ ** 	a) -s , the index to start penetrell from
+ ** 	b) -n , the n number to increment -s inside a for
+ **
+ ** Data is saved in /database/penetrel.db
+ **
+ ************************************************************************************/
 int main(int argc, char* argv[]) {
 
     inargs* ar = handle_input(argc, argv);
@@ -76,7 +76,6 @@ int main(int argc, char* argv[]) {
         next += trlist.n;
 
         // here the data must be saved to db
-        // print_table_row(&trlist);
         save_tablerows(&trlist, start_index + i, true);
 
         // get the post_keys from the returned page
@@ -87,6 +86,7 @@ int main(int argc, char* argv[]) {
         // dig for subsequent pages
         if (has_more_pages) {
             const char* html = nullptr;
+
             do {
                 html = do_post_request(curl, address, &pklist, next);
                 if (html) {
@@ -95,9 +95,13 @@ int main(int argc, char* argv[]) {
                         printf("Failed to get table data from POST response\n");
                         exit(EXIT_FAILURE);
                     }
-                    // print_table_row(&list);
+
+                    // for some other time:
+                    // if there is an error while saving the data  should
+                    // retry for some time and the, if still not ok, break
                     save_tablerows(&list, start_index + i, false);
                     next += list.n;
+
                     free_table_data(&list);
                 } else {
                     printf("There is no POST reply from server\n");

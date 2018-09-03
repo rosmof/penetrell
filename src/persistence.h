@@ -65,7 +65,8 @@ bool create_table();
 sqlite3* get_dbx(const char* name);
 
 /**
- * Prior to saving, this function also checks if the data is recorded
+ * Prior to saving, this function also checks if the data is recorded but only if
+ * delete_before is set to true.
  *  */
 int save_tablerows(table_row_list* list, int idx, bool delete_before);
 
