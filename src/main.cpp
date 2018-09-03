@@ -7,9 +7,10 @@
 
 #include "request.h"
 #include <curl/curl.h>
-//#include "form_data.h"
+#include <stdlib.h>
 
 #include "persistence.h"
+#include "arguments.h"
 
 void print_table_row(table_row_list* list) {
     for (int i = 0; i < list->n; i++) {
@@ -28,6 +29,11 @@ void print_pklist(post_key_list* list) {
 
 int main(int argc, char* argv[]) {
 
+    inargs* ar = handle_input(argc, argv);
+    if (!ar) {
+        exit(EXIT_FAILURE);
+    }
+
     if (!initialize_database()) {
         printf("failed to initiate database context\n");
         exit(EXIT_FAILURE);
@@ -35,11 +41,11 @@ int main(int argc, char* argv[]) {
 
     CURL* curl;
     curl = curl_easy_init();
-    int rc = 0, start_index = 2;
+    int rc = 0, start_index = ar->start;
 
     char address[128];
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < ar->n; i++) {
         bzero(address, 128);
         sprintf(address, address_fmt, start_index + i, start_index + i);
 
@@ -108,6 +114,7 @@ int main(int argc, char* argv[]) {
     }
 
     curl_easy_cleanup(curl);
+    free(ar);
 
     return 0;
 }
