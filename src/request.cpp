@@ -133,6 +133,8 @@ const char* do_post_request(CURL* curl, const char* address, post_key_list* pkli
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/68.0.3440.106 Safari/537.36");
 
+    // not so transparent
+    // this is how the next value parameter for POST is updated
     const char* post_data = set_post_fields(curl, pklist, gotn);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
 

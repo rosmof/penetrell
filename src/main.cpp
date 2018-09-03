@@ -7,7 +7,8 @@
 
 #include "request.h"
 #include <curl/curl.h>
-#include "form_data.h"
+//#include "form_data.h"
+
 #include "persistence.h"
 
 void print_table_row(table_row_list* list) {
@@ -27,21 +28,22 @@ void print_pklist(post_key_list* list) {
 
 int main(int argc, char* argv[]) {
 
-    if (initialize_database()) {
-        printf("adad");
+    if (!initialize_database()) {
+        printf("failed to initiate database context\n");
+        exit(EXIT_FAILURE);
     }
-
-    exit(0);
 
     CURL* curl;
     curl = curl_easy_init();
-    int rc = 0, start_index = 290;
+    int rc = 0, start_index = 2;
 
     char address[128];
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 3; i++) {
         bzero(address, 128);
         sprintf(address, address_fmt, start_index + i, start_index + i);
+
+        int next = 1;
 
         // get the GET page response
         response_page_details page;
@@ -65,21 +67,20 @@ int main(int argc, char* argv[]) {
             printf("could not get details for %s; will skip this one\n", address);
             continue;
         }
+        next += trlist.n;
 
         // here the data must be saved to db
-        print_table_row(&trlist);
-        free_table_data(&trlist);
+        // print_table_row(&trlist);
+        save_tablerows(&trlist, start_index + i, true);
 
         // get the post_keys from the returned page
         post_key_list pklist;
         pklist.items = 0;
         bool has_more_pages = get_form_fields(&pklist, page.rsp_page);
 
+        // dig for subsequent pages
         if (has_more_pages) {
             const char* html = nullptr;
-            int next = 31; //
-
-            // get all the post pages
             do {
                 html = do_post_request(curl, address, &pklist, next);
                 if (html) {
@@ -88,7 +89,8 @@ int main(int argc, char* argv[]) {
                         printf("Failed to get table data from POST response\n");
                         exit(EXIT_FAILURE);
                     }
-                    print_table_row(&list);
+                    // print_table_row(&list);
+                    save_tablerows(&list, start_index + i, false);
                     next += list.n;
                     free_table_data(&list);
                 } else {
@@ -98,9 +100,11 @@ int main(int argc, char* argv[]) {
             } while (has_next(html));
         }
 
-        // cleanup
-        free_pklist(&pklist);
-        free(page.rsp_page);
+        printf("total elements for %s = %d\n", address, next);
+
+        free_pklist(&pklist);     // cleanup post_key list from GET
+        free_table_data(&trlist); // cleanup table_row list from GET
+        free(page.rsp_page);      // cleanup html  page from GET
     }
 
     curl_easy_cleanup(curl);

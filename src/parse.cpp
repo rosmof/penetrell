@@ -83,7 +83,7 @@ void update_eventargument(post_key_list* pklist, size_t gotn) {
                 sprintf(replace, nextrow_fmt, gotn);
                 bzero(pklist->keys[i]->value, 5012);
                 strcpy(pklist->keys[i]->value, replace);
-                printf("new value: %s\n", pklist->keys[i]->value);
+                // printf("new value: %s\n", pklist->keys[i]->value);
             }
         }
     }
